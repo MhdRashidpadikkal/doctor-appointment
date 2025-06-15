@@ -1,57 +1,53 @@
 package com.example.doctor_appointment.controller;
 
-import com.example.doctor_appointment.config.JwtUtil;
-import com.example.doctor_appointment.dto.AuthResponse;
-import com.example.doctor_appointment.dto.LoginDto;
-import com.example.doctor_appointment.dto.UserRegister;
-import com.example.doctor_appointment.model.Role;
-import com.example.doctor_appointment.model.User;
-import com.example.doctor_appointment.repository.UserRepository;
+import com.example.doctor_appointment.dto.*;
+import com.example.doctor_appointment.service.AuthService;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.authentication.AuthenticationManager;
-import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
-import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
-@RequestMapping("api")
-@Tag(name = "User Controller", description = "Manage users")
+@RequestMapping("api/auth")
+@Tag(name = "Auth Controller", description = "Manage authentication")
 public class AuthController {
 
     @Autowired
-    private UserRepository userRepository;
+    private AuthService authService;
 
-    @Autowired
-    private PasswordEncoder encoder;
+    @PostMapping("/admin/register")
+    public ResponseEntity<?> registerAdmin(@RequestBody UserRegister dto) {
+        String otpSended = authService.registerAdmin(dto);
+        return ResponseEntity.ok(new AuthResponse(otpSended));
+    }
 
-    @Autowired
-    private AuthenticationManager authManager;
-
-    @Autowired
-    private JwtUtil jwtUtil;
-
-    @PostMapping("/user/register")
-    public ResponseEntity<?> registerUser(@RequestBody UserRegister user) {
-        User newUser = new User();
-        newUser.setPassword(encoder.encode(user.getPassword()));
-        newUser.setName(user.getName());
-        newUser.setEmail(user.getEmail());
-        newUser.setRole(Role.user);
-
-        userRepository.save(newUser);
-        String token = jwtUtil.generateToken(user.getEmail());
+    @PostMapping("/users/register")
+    public ResponseEntity<?> registerUser(@RequestBody UserRegister dto) {
+        String token = authService.registerUser(dto);
         return ResponseEntity.ok(new AuthResponse(token));
+    }
+
+    @PostMapping("/doctors/register")
+    public ResponseEntity<?> registerDoctor(@RequestBody DoctorRegister dto) {
+        String token = authService.registerDoctor(dto);
+        return ResponseEntity.ok(new AuthResponse(token));
+    }
+
+    @PostMapping("/verify")
+    public ResponseEntity<?> verifyOtp(@RequestBody VerifyOtp dto) {
+        String token = authService.verifyOtp(dto);
+        return ResponseEntity.ok(token);
+    }
+
+    @PostMapping("/resend-otp")
+    public ResponseEntity<?> resendOtp(@RequestBody EmailDto email) {
+        String response = authService.resendOtp(email);
+        return ResponseEntity.ok(response);
     }
 
     @PostMapping("/login")
-    public ResponseEntity<?> login(@RequestBody LoginDto request) {
-        authManager.authenticate(new UsernamePasswordAuthenticationToken(request.getEmail(), request.getPassword()));
-        String token = jwtUtil.generateToken(request.getEmail());
+    public ResponseEntity<?> login(@RequestBody LoginDto dto) {
+        String token = authService.login(dto);
         return ResponseEntity.ok(new AuthResponse(token));
     }
-
-    @GetMapping("users/{id}")
-    public ResponseEntity<?> getUserById(@RequestParam Long id) {}
 }

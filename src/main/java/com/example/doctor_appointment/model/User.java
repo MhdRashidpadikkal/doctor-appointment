@@ -25,7 +25,7 @@ public class User {
 
     private String otp;
     private LocalDateTime otpExpiry;
-    private Boolean emailVerified;
+    private Boolean emailVerified = false;
 
     @CreationTimestamp
     private LocalDateTime createdAt;

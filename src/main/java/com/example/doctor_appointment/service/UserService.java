@@ -1,5 +1,7 @@
 package com.example.doctor_appointment.service;
 
+
+import com.example.doctor_appointment.dto.UserResponse;
 import com.example.doctor_appointment.model.User;
 import com.example.doctor_appointment.repository.UserRepository;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -26,5 +28,23 @@ public class UserService implements UserDetailsService {
                 user.getPassword(),
                 List.of(new SimpleGrantedAuthority("ROLE_" + user.getRole().name().toUpperCase()))
         );
+    }
+
+    public List<UserResponse> listAllUsers() {
+        List<UserResponse> response = userRepository.findAll().stream()
+                .map(this::convertToUserResponse)
+                .toList();
+        return response;
+    }
+
+    private UserResponse convertToUserResponse(User user) {
+        UserResponse dto = new UserResponse();
+        dto.setId(user.getId());
+        dto.setName(user.getName());
+        dto.setEmail(user.getEmail());
+        dto.setRole(user.getRole());
+        dto.setCreatedAt(user.getCreatedAt());
+        dto.setUpdatedAt(user.getUpdatedAt());
+        return dto;
     }
 }
