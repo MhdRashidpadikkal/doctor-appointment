@@ -28,8 +28,8 @@ public class JwtRequestFilter extends OncePerRequestFilter {
 
         String path = request.getRequestURI();
 
-        // ✅ Skip JWT validation for public endpoints
-        if (path.equals("/api/user/register") || path.equals("/api/login") ||
+        // Skip JWT validation for public endpoints
+        if (path.equals("/api/auth/**") ||
                 path.startsWith("/swagger-ui") || path.startsWith("/v3/api-docs")) {
             chain.doFilter(request, response);
             return;
