@@ -1,6 +1,6 @@
 package com.example.doctor_appointment.service;
 
-
+import com.example.doctor_appointment.dto.UserRegister;
 import com.example.doctor_appointment.dto.UserResponse;
 import com.example.doctor_appointment.model.User;
 import com.example.doctor_appointment.repository.UserRepository;
@@ -41,10 +41,35 @@ public class UserService implements UserDetailsService {
         UserResponse dto = new UserResponse();
         dto.setId(user.getId());
         dto.setName(user.getName());
+        dto.setAge(user.getAge());
         dto.setEmail(user.getEmail());
         dto.setRole(user.getRole());
         dto.setCreatedAt(user.getCreatedAt());
         dto.setUpdatedAt(user.getUpdatedAt());
         return dto;
     }
+
+    public UserResponse updateUser(UserRegister dto, Long id) {
+        User currentUser = userRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("User not found"));
+
+        currentUser.setName(dto.getName());
+        currentUser.setAge(dto.getAge());
+        currentUser.setEmail(dto.getEmail());
+        currentUser.setPassword(dto.getPassword());
+        userRepository.save(currentUser);
+
+        UserResponse updatedUser = new UserResponse();
+        updatedUser.setId(currentUser.getId());
+        updatedUser.setName(currentUser.getName());
+        updatedUser.setAge(currentUser.getAge());
+        updatedUser.setRole(currentUser.getRole());
+        updatedUser.setCreatedAt(currentUser.getCreatedAt());
+        updatedUser.setUpdatedAt(currentUser.getUpdatedAt());
+        return updatedUser;
+    }
 }
+
+
+
+

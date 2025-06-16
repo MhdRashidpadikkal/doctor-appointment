@@ -35,8 +35,7 @@ public class AuthController {
 
     @PostMapping("/verify")
     public ResponseEntity<?> verifyOtp(@RequestBody VerifyOtp dto) {
-        String token = authService.verifyOtp(dto);
-        return ResponseEntity.ok(token);
+        return authService.verifyOtp(dto);
     }
 
     @PostMapping("/resend-otp")
