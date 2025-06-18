@@ -8,6 +8,7 @@ import com.example.doctor_appointment.model.User;
 import com.example.doctor_appointment.repository.DoctorProfileRepository;
 import com.example.doctor_appointment.repository.UserRepository;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -42,6 +43,7 @@ public class AuthService {
         User newUser = new User();
         newUser.setPassword(encoder.encode(dto.getPassword()));
         newUser.setName(dto.getName());
+        newUser.setAge(dto.getAge());
         newUser.setEmail(dto.getEmail());
         newUser.setRole(Role.admin);
 
@@ -59,20 +61,31 @@ public class AuthService {
         User newUser = new User();
         newUser.setPassword(encoder.encode(dto.getPassword()));
         newUser.setName(dto.getName());
+        newUser.setAge(dto.getAge());
         newUser.setEmail(dto.getEmail());
         newUser.setRole(Role.user);
 
+        String otp = String.valueOf(new Random().nextInt(999999));
+        newUser.setOtp(otp);
+        newUser.setOtpExpiry(LocalDateTime.now().plusMinutes(10));
+
         userRepository.save(newUser);
-        return jwtUtil.generateToken(dto.getEmail());
+
+        emailService.sendOtpEmail(dto.getEmail(), otp);
+        return "Otp sended to your mail";
     }
 
     @Transactional
     public String registerDoctor(DoctorRegister dto) {
         User newUser = new User();
         newUser.setName(dto.getName());
+        newUser.setAge(dto.getAge());
         newUser.setEmail(dto.getEmail());
         newUser.setPassword(encoder.encode(dto.getPassword()));
         newUser.setRole(Role.doctor);
+        String otp = String.valueOf(new Random().nextInt(999999));
+        newUser.setOtp(otp);
+        newUser.setOtpExpiry(LocalDateTime.now().plusMinutes(10));
         userRepository.save(newUser);
 
         DoctorProfile profile = new DoctorProfile();
@@ -82,10 +95,12 @@ public class AuthService {
         profile.setSlotDuration(dto.getSlotDuration());
         doctorProfileRepository.save(profile);
 
-        return jwtUtil.generateToken(newUser.getEmail());
+        emailService.sendOtpEmail(dto.getEmail(), otp);
+
+        return "Otp sended to your mail";
     }
 
-    public String verifyOtp(VerifyOtp dto) {
+    public ResponseEntity<?> verifyOtp(VerifyOtp dto) {
         User user = userRepository.findByEmail(dto.getEmail())
                 .orElseThrow(() -> new RuntimeException("User not found"));
 
@@ -93,9 +108,23 @@ public class AuthService {
             user.setEmailVerified(true);
             user.setOtp(null);
             userRepository.save(user);
-            return ("Email verified");
+
+            String token = jwtUtil.generateToken(user.getEmail());
+
+            UserResponse response = new UserResponse();
+            response.setToken(token);
+            response.setId(user.getId());
+            response.setName(user.getName());
+            response.setAge(user.getAge());
+            response.setEmail(user.getEmail());
+            response.setRole(user.getRole());
+            response.setCreatedAt(user.getCreatedAt());
+            response.setUpdatedAt(user.getUpdatedAt());
+            return ResponseEntity.ok(response);
         } else {
-            return ("Invalid or expired OTP");
+            return ResponseEntity
+                    .badRequest()
+                    .body("Invalid or expired OTP");
         }
     }
 
