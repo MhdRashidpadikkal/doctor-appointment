@@ -12,6 +12,7 @@ public class DoctorResponse {
     private String token;
     private Long id;
     private String name;
+    private Integer age;
     private String email;
     private Role role;
     private LocalTime startTime;

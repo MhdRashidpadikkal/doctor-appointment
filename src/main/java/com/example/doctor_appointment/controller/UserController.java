@@ -1,5 +1,7 @@
 package com.example.doctor_appointment.controller;
 
+import com.example.doctor_appointment.dto.DoctorRegister;
+import com.example.doctor_appointment.dto.DoctorResponse;
 import com.example.doctor_appointment.dto.UserRegister;
 import com.example.doctor_appointment.dto.UserResponse;
 import com.example.doctor_appointment.model.User;
@@ -37,10 +39,32 @@ public class UserController {
         return ResponseEntity.ok(response);
     }
 
+    @PutMapping("doctors/{id}")
+    public ResponseEntity<DoctorResponse> updateDoctor(@RequestBody DoctorRegister dto, @PathVariable Long id) {
+        DoctorResponse response = userService.updateDoctor(dto, id);
+        return ResponseEntity.ok(response);
+    }
+
     @GetMapping("/{id}")
     public ResponseEntity<User> getUserById(@PathVariable Long id) {
         User isUser = userRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException(String.format("User not found with id %d", id)));
         return ResponseEntity.ok(isUser);
     }
+
+    @DeleteMapping("/{id}")
+    public ResponseEntity<String> deleteUserById(@PathVariable Long id) {
+        userRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("User not found with id " + id));
+
+        userRepository.deleteById(id);
+        return ResponseEntity.ok("User deleted successfully");
+    }
+
+    @GetMapping("/doctors")
+    public ResponseEntity<List<DoctorResponse>> listDoctors() {
+        List<DoctorResponse> response = userService.listDoctors();
+        return ResponseEntity.ok(response);
+    }
+
 }
