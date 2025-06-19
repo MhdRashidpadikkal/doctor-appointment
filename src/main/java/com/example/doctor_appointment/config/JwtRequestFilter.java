@@ -29,7 +29,7 @@ public class JwtRequestFilter extends OncePerRequestFilter {
         String path = request.getRequestURI();
 
         // Skip JWT validation for public endpoints
-        if (path.equals("/api/auth/**") ||
+        if (path.startsWith("/api/auth") ||
                 path.startsWith("/swagger-ui") || path.startsWith("/v3/api-docs")) {
             chain.doFilter(request, response);
             return;
@@ -46,6 +46,7 @@ public class JwtRequestFilter extends OncePerRequestFilter {
 
         if (email != null && SecurityContextHolder.getContext().getAuthentication() == null) {
             UserDetails userDetails = userService.loadUserByUsername(email);
+
 
             if (jwtUtil.validateToken(jwt, userDetails.getUsername())) {
                 UsernamePasswordAuthenticationToken authToken =

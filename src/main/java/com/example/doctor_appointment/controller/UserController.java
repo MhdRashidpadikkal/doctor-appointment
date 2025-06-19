@@ -5,6 +5,7 @@ import com.example.doctor_appointment.dto.DoctorResponse;
 import com.example.doctor_appointment.dto.UserRegister;
 import com.example.doctor_appointment.dto.UserResponse;
 import com.example.doctor_appointment.model.User;
+import com.example.doctor_appointment.repository.DoctorProfileRepository;
 import com.example.doctor_appointment.repository.UserRepository;
 import com.example.doctor_appointment.service.UserService;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -24,6 +25,9 @@ public class UserController {
     private UserRepository userRepository;
 
     @Autowired
+    private DoctorProfileRepository doctorProfileRepository;
+
+    @Autowired
     private UserService userService;
 
     @PreAuthorize("hasRole('ADMIN')")
@@ -33,12 +37,20 @@ public class UserController {
         return ResponseEntity.ok(userList);
     }
 
+    @PreAuthorize("hasRole('ADMIN') ")
+    @GetMapping("/admins")
+    public ResponseEntity<List<UserResponse>> listAllAdmins() {
+        List<UserResponse> userList = userService.listAllAdmins();
+        return ResponseEntity.ok(userList);
+    }
+
     @PutMapping("/{id}")
     public ResponseEntity<UserResponse> updateUser(@RequestBody UserRegister dto,@PathVariable Long id) {
         UserResponse response = userService.updateUser(dto, id);
         return ResponseEntity.ok(response);
     }
 
+    @PreAuthorize("hasRole('ADMIN') or hasRole('DOCTOR') ")
     @PutMapping("doctors/{id}")
     public ResponseEntity<DoctorResponse> updateDoctor(@RequestBody DoctorRegister dto, @PathVariable Long id) {
         DoctorResponse response = userService.updateDoctor(dto, id);
@@ -54,8 +66,10 @@ public class UserController {
 
     @DeleteMapping("/{id}")
     public ResponseEntity<String> deleteUserById(@PathVariable Long id) {
-        userRepository.findById(id)
+        User user = userRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("User not found with id " + id));
+
+        doctorProfileRepository.findByUser(user).ifPresent(doctorProfileRepository::delete);
 
         userRepository.deleteById(id);
         return ResponseEntity.ok("User deleted successfully");
@@ -66,5 +80,5 @@ public class UserController {
         List<DoctorResponse> response = userService.listDoctors();
         return ResponseEntity.ok(response);
     }
-
 }
+

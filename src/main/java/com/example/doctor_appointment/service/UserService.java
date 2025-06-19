@@ -8,6 +8,7 @@ import com.example.doctor_appointment.model.DoctorProfile;
 import com.example.doctor_appointment.model.User;
 import com.example.doctor_appointment.repository.DoctorProfileRepository;
 import com.example.doctor_appointment.repository.UserRepository;
+import com.example.doctor_appointment.security.CurrentUserProvider;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
@@ -26,6 +27,9 @@ public class UserService implements UserDetailsService {
     @Autowired
     private DoctorProfileRepository doctorProfileRepository;
 
+    @Autowired
+    private CurrentUserProvider currentUserProvider;
+
     @Override
     public UserDetails loadUserByUsername(String email) throws UsernameNotFoundException {
         User user = userRepository.findByEmail(email)
@@ -39,6 +43,15 @@ public class UserService implements UserDetailsService {
 
     public List<UserResponse> listAllUsers() {
         List<UserResponse> response = userRepository.findAll().stream()
+                .filter(user -> user.getRole().name().equalsIgnoreCase("user"))
+                .map(this::convertToUserResponse)
+                .toList();
+        return response;
+    }
+
+    public List<UserResponse> listAllAdmins() {
+        List<UserResponse> response = userRepository.findAll().stream()
+                .filter(user -> user.getRole().name().equalsIgnoreCase("admin"))
                 .map(this::convertToUserResponse)
                 .toList();
         return response;
@@ -62,8 +75,6 @@ public class UserService implements UserDetailsService {
 
         currentUser.setName(dto.getName());
         currentUser.setAge(dto.getAge());
-        currentUser.setEmail(dto.getEmail());
-        currentUser.setPassword(dto.getPassword());
         userRepository.save(currentUser);
 
         UserResponse updatedUser = new UserResponse();
@@ -77,32 +88,39 @@ public class UserService implements UserDetailsService {
     }
 
     public DoctorResponse updateDoctor(DoctorRegister dto, Long id) {
-        User currentUser = userRepository.findById(id)
+
+        User loggedInUser = currentUserProvider.getCurrentUser();
+
+        // Role-based check
+        if(loggedInUser.getRole().name().equalsIgnoreCase("doctor") && !loggedInUser.getId().equals(id)) {
+            throw new RuntimeException("Doctors can only update their own profile");
+        }
+
+        DoctorProfile currentUser = doctorProfileRepository.findByUserId(id)
                 .orElseThrow(() -> new RuntimeException("User not found"));
 
-        currentUser.setName(dto.getName());
-        currentUser.setAge(dto.getAge());
-        currentUser.setEmail(dto.getEmail());
-        currentUser.setPassword(dto.getPassword());
-        userRepository.save(currentUser);
+        currentUser.getUser().setName(dto.getName());
+        currentUser.getUser().setName(dto.getName());
+        currentUser.getUser().setAge(dto.getAge());
+        userRepository.save(currentUser.getUser());
 
-        DoctorProfile profile = new DoctorProfile();
-        profile.setUser(currentUser);
-        profile.setStartTime(dto.getStartTime());
-        profile.setEndTime(dto.getEndTime());
-        profile.setSlotDuration(dto.getSlotDuration());
-        doctorProfileRepository.save(profile);
+        currentUser.setUser(currentUser.getUser());
+        currentUser.setStartTime(dto.getStartTime());
+        currentUser.setEndTime(dto.getEndTime());
+        currentUser.setSlotDuration(dto.getSlotDuration());
+        doctorProfileRepository.save(currentUser);
 
         DoctorResponse updatedUser = new DoctorResponse();
-        updatedUser.setId(currentUser.getId());
-        updatedUser.setName(currentUser.getName());
-        updatedUser.setAge(currentUser.getAge());
-        updatedUser.setRole(currentUser.getRole());
+        updatedUser.setId(currentUser.getUser().getId());
+        updatedUser.setName(currentUser.getUser().getName());
+        updatedUser.setAge(currentUser.getUser().getAge());
+        updatedUser.setEmail(currentUser.getUser().getEmail());
+        updatedUser.setRole(currentUser.getUser().getRole());
         updatedUser.setStartTime(dto.getStartTime());
         updatedUser.setEndTime(dto.getEndTime());
         updatedUser.setSlotDuration(dto.getSlotDuration());
-        updatedUser.setCreatedDate(currentUser.getCreatedAt());
-        updatedUser.setUpdatedDate(currentUser.getUpdatedAt());
+        updatedUser.setCreatedDate(currentUser.getUser().getCreatedAt());
+        updatedUser.setUpdatedDate(currentUser.getUser().getUpdatedAt());
         return updatedUser;
     }
 
@@ -110,11 +128,14 @@ public class UserService implements UserDetailsService {
         List<DoctorProfile> profiles = doctorProfileRepository.findAll();
 
         List<DoctorResponse> response = profiles.stream()
+                .filter(profile -> profile.getUser().getRole().name().equalsIgnoreCase("doctor"))
                 .map(profile -> {
                     DoctorResponse dto = new DoctorResponse();
                     dto.setId(profile.getUser().getId());
                     dto.setName(profile.getUser().getName());
+                    dto.setAge(profile.getUser().getAge());
                     dto.setEmail(profile.getUser().getEmail());
+                    dto.setRole(profile.getUser().getRole());
                     dto.setStartTime(profile.getStartTime());
                     dto.setEndTime(profile.getEndTime());
                     dto.setSlotDuration(profile.getSlotDuration());
